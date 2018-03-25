@@ -1,0 +1,12 @@
+{
+  "parserOptions": {
+    "ecmaVersion": 2015,
+    "sourceType": "script"
+  },
+  "env": {
+    "commonjs": true,
+    "browser": false,
+    "node": false,
+    "shared-node-browser": true
+  }
+}
