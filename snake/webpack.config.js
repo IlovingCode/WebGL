@@ -68,6 +68,7 @@ const config = {
     }),
     new webpack.optimize.OccurrenceOrderPlugin(false),
     new HtmlWebpackPlugin({
+      template: './index.html',
       title: 'PIXI/Webpack Starter Kit',
       cache: false,
       minify: { collapseWhitespace: true },
@@ -76,7 +77,7 @@ const config = {
   ],
   module: {
     rules: [
-      { test: /\.css$/, loader: cssLoader, include: INCLUDE_PATHS },
+      { test: /\.css$/, use:['style-loader','css-loader'] },
       { test: /\.js$/, loader: 'babel-loader', include: INCLUDE_PATHS },
     ],
   },
