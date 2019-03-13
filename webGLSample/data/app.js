@@ -1,20 +1,30 @@
+//import {vertexShaderText, fragmentShaderText} from './dmap.js';
+
 var vertexShaderText = `
-    precision mediump float;
     attribute vec2 a_position;
-    attribute vec2 a_texcoord;
-    varying vec2 texcoord;
-
+    attribute vec2 a_uv;
+    varying vec2 vUv;
     void main() {
-        texcoord = a_texcoord;
-        gl_Position = vec4(a_position, 0.0, 1.0);
-    }`;
-
+        vUv = a_uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(a_position, 1.0 );
+	}`;
+	
 var fragmentShaderText = `
-    precision mediump float;
-	varying vec2 texcoord;
-	uniform sampler2D texture;
-    void main() {
-        gl_FragColor = texture2D(texture, texcoord);
+    varying vec2 vUv;
+    uniform sampler2D texture;
+    uniform sampler2D texture2;
+    uniform sampler2D disp;
+    uniform float dispFactor;
+    uniform float effectFactor;
+    void main() { 
+        vec2 uv = vUv;
+        vec4 disp = texture2D(disp, uv);
+        vec2 distortedPosition = vec2(uv.x + dispFactor * (disp.r*effectFactor), uv.y);
+        vec2 distortedPosition2 = vec2(uv.x - (1.0 - dispFactor) * (disp.r*effectFactor), uv.y);
+        vec4 _texture = texture2D(texture, distortedPosition);
+        vec4 _texture2 = texture2D(texture2, distortedPosition2);
+        vec4 finalTexture = mix(_texture, _texture2, dispFactor);
+        gl_FragColor = finalTexture; 
     }`;
 
 var gl = null;
@@ -85,7 +95,7 @@ var InitDemo = function() {
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
 	var posLoc = gl.getAttribLocation(shaderProg, 'a_position');
-	var texcoordLoc = gl.getAttribLocation(shaderProg, 'a_texcoord');
+	var texcoordLoc = gl.getAttribLocation(shaderProg, 'a_uv');
 	gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, gl.FALSE,
 		4 * Float32Array.BYTES_PER_ELEMENT, 0);
 	gl.vertexAttribPointer(texcoordLoc, 2, gl.FLOAT, gl.FALSE,
@@ -100,6 +110,10 @@ var InitDemo = function() {
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indice_buffer);
 	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
+	loadTexture(0, 'dmap.jpg', 'texture');
+};
+
+var loadTexture = function(id, path, location, callback) {
 	var image = new Image();
 	image.addEventListener('load', function() {
 		var tex = gl.createTexture();
@@ -113,14 +127,14 @@ var InitDemo = function() {
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 		}
-		var textureLoc = gl.getUniformLocation(shaderProg, 'texture');
+		var textureLoc = gl.getUniformLocation(shaderProg, location);
 	
 		// Main render loop
 		gl.useProgram(shaderProg);
-		gl.uniform1i(textureLoc, 0);
-		window.requestAnimationFrame(draw);
+		gl.uniform1i(textureLoc, id);
+		callback && callback();
 	});
-	image.src = 'test.jpg';
+	image.src = path;
 };
 
 var draw = function (dt) {
