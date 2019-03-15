@@ -6,10 +6,11 @@ var vertexShaderText = `
     varying vec2 vUv;
     void main() {
         vUv = a_uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(a_position, 1.0 );
+        gl_Position = vec4(a_position, 1.0, 1.0);
 	}`;
 	
 var fragmentShaderText = `
+	precision mediump float;
     varying vec2 vUv;
     uniform sampler2D texture;
     uniform sampler2D texture2;
@@ -110,14 +111,28 @@ var InitDemo = function() {
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indice_buffer);
 	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
-	loadTexture(0, 'dmap.jpg', 'texture');
+	let jobs = [];
+	gl.useProgram(shaderProg);
+	jobs.push(new Promise((resolve, reject) => {
+		loadTexture(0, 'dmap.jpg', 'disp', resolve, reject);
+	}));
+	jobs.push(new Promise((resolve, reject) => {
+		loadTexture(1, 'intro_bar-cavour.jpg', 'texture', resolve, reject);
+	}));
+	jobs.push(new Promise((resolve, reject) => {
+		loadTexture(2, 'intro_gruppo.jpg', 'texture2', resolve, reject);
+	}));
+
+	Promise.all(jobs).then(() =>{
+		draw(0);
+	});
 };
 
-var loadTexture = function(id, path, location, callback) {
+var loadTexture = function(id, path, location, resolve, reject) {
 	var image = new Image();
 	image.addEventListener('load', function() {
 		var tex = gl.createTexture();
-		gl.activeTexture(gl.TEXTURE0);
+		gl.activeTexture(gl['TEXTURE' + id]);
 		gl.bindTexture(gl.TEXTURE_2D, tex);
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 		if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
@@ -130,14 +145,30 @@ var loadTexture = function(id, path, location, callback) {
 		var textureLoc = gl.getUniformLocation(shaderProg, location);
 	
 		// Main render loop
-		gl.useProgram(shaderProg);
 		gl.uniform1i(textureLoc, id);
-		callback && callback();
+		resolve();
+	});
+	image.addEventListener('error', function() {
+		reject();
 	});
 	image.src = path;
 };
 
+var param1 = 0;
+var param2 = 0.3;
+
+var updateAttribute = function (dt) {
+	param1 = Math.abs(Math.sin(dt));
+
+	var loc1 = gl.getUniformLocation(shaderProg, 'dispFactor');
+	gl.uniform1f(loc1, param1);
+
+	var loc2 = gl.getUniformLocation(shaderProg, 'effectFactor');
+	gl.uniform1f(loc2, param2);
+};
+
 var draw = function (dt) {
+	updateAttribute(dt / 1000);
 	gl.drawElements(gl.TRIANGLES, indiceCount, gl.UNSIGNED_SHORT, 0);
 	window.requestAnimationFrame(draw);
 };

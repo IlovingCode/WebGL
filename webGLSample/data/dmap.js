@@ -7,6 +7,7 @@ export var vertexShaderText = `
         gl_Position = projectionMatrix * modelViewMatrix * vec4(a_position, 1.0 );
     }`;
 export var fragmentShaderText = `
+    precision mediump float;
     varying vec2 vUv;
     uniform sampler2D texture;
     uniform sampler2D texture2;
