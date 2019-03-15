@@ -8,7 +8,7 @@ var vertexShaderText = `
         vUv = a_uv;
         gl_Position = vec4(a_position, 1.0, 1.0);
 	}`;
-	
+
 var fragmentShaderText = `
 	precision mediump float;
     varying vec2 vUv;
@@ -18,21 +18,25 @@ var fragmentShaderText = `
     uniform float dispFactor;
     uniform float effectFactor;
     void main() { 
-        vec2 uv = vUv;
+		vec2 uv = vUv;
+		vec2 dir = vec2(uv.x - 0.5, uv.y - 0.5) * -effectFactor;
+		dir *= dispFactor;
         vec4 disp = texture2D(disp, uv);
-        vec2 distortedPosition = vec2(uv.x + dispFactor * (disp.r*effectFactor), uv.y);
-        vec2 distortedPosition2 = vec2(uv.x - (1.0 - dispFactor) * (disp.r*effectFactor), uv.y);
+		vec2 distortedPosition = vec2(uv.x + dispFactor * disp.r * dir.x, 
+									uv.y + dispFactor * disp.r * dir.y);
+		vec2 distortedPosition2 = vec2(uv.x - (1.0 - dispFactor) * disp.r * dir.x, 
+									uv.y - (1.0 - dispFactor) * disp.r * dir.y);
         vec4 _texture = texture2D(texture, distortedPosition);
         vec4 _texture2 = texture2D(texture2, distortedPosition2);
         vec4 finalTexture = mix(_texture, _texture2, dispFactor);
-        gl_FragColor = finalTexture; 
+        gl_FragColor = finalTexture;
     }`;
 
 var gl = null;
 var indiceCount = 0;
 var shaderProg = null;
 
-var compileShader = function(vert, frag) {
+var compileShader = function (vert, frag) {
 	var vertexShader = gl.createShader(gl.VERTEX_SHADER);
 	var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
 
@@ -72,9 +76,11 @@ function isPowerOf2(value) {
 	return (value & (value - 1)) == 0;
 }
 
-var InitDemo = function() {
+var canvas = null;
+
+var InitDemo = function () {
 	console.log('This is working');
-	var canvas = document.getElementById('game-surface');
+	canvas = document.getElementById('game-surface');
 	gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 	!gl && alert('Your browser does not support WebGL');
 	gl.clearColor(0, 0, 0, 0);
@@ -123,14 +129,14 @@ var InitDemo = function() {
 		loadTexture(2, 'intro_gruppo.jpg', 'texture2', resolve, reject);
 	}));
 
-	Promise.all(jobs).then(() =>{
+	Promise.all(jobs).then(() => {
 		draw(0);
 	});
 };
 
-var loadTexture = function(id, path, location, resolve, reject) {
+var loadTexture = function (id, path, location, resolve, reject) {
 	var image = new Image();
-	image.addEventListener('load', function() {
+	image.addEventListener('load', function () {
 		var tex = gl.createTexture();
 		gl.activeTexture(gl['TEXTURE' + id]);
 		gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -141,34 +147,51 @@ var loadTexture = function(id, path, location, resolve, reject) {
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 		}
 		var textureLoc = gl.getUniformLocation(shaderProg, location);
-	
+
 		// Main render loop
 		gl.uniform1i(textureLoc, id);
 		resolve();
 	});
-	image.addEventListener('error', function() {
+	image.addEventListener('error', function () {
 		reject();
 	});
 	image.src = path;
 };
 
+var timer = 0;
 var param1 = 0;
-var param2 = 0.3;
+var param2 = 0.7;
 
 var updateAttribute = function (dt) {
-	param1 = Math.abs(Math.sin(dt));
+	param1 += dt;
+	if (param1 > 5) param1 = 0;
 
 	var loc1 = gl.getUniformLocation(shaderProg, 'dispFactor');
-	gl.uniform1f(loc1, param1);
+	gl.uniform1f(loc1, param1 < 3 ? (param1 > 2 ? (param1 - 2) : 0) : 1);
 
 	var loc2 = gl.getUniformLocation(shaderProg, 'effectFactor');
 	gl.uniform1f(loc2, param2);
 };
 
 var draw = function (dt) {
-	updateAttribute(dt / 1000);
+	!timer && (timer = dt);
+	updateAttribute((dt - timer) / 1000);
+	timer = dt;
 	gl.drawElements(gl.TRIANGLES, indiceCount, gl.UNSIGNED_SHORT, 0);
 	window.requestAnimationFrame(draw);
 };
+
+window.addEventListener('resize', () => {
+	gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+});
+window.addEventListener('load', () => {
+	InitDemo();
+	gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+});
