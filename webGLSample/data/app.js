@@ -12,29 +12,26 @@ var vertexShaderText = `
 var fragmentShaderText = `
 	precision mediump float;
     varying vec2 vUv;
-    uniform sampler2D texture;
-    uniform sampler2D texture2;
-    uniform sampler2D disp;
-    uniform float dispFactor;
-    uniform float effectFactor;
+	uniform sampler2D texture;
+	float radius = 2.0;
+	uniform float ratio;
+	uniform vec2 mouse;
     void main() { 
-		vec2 uv = vUv;
-		vec2 dir = vec2(uv.x - 0.5, uv.y - 0.5) * -effectFactor;
-		dir *= dispFactor;
-        vec4 disp = texture2D(disp, uv);
-		vec2 distortedPosition = vec2(uv.x + dispFactor * disp.r * dir.x, 
-									uv.y + dispFactor * disp.r * dir.y);
-		vec2 distortedPosition2 = vec2(uv.x - (1.0 - dispFactor) * disp.r * dir.x, 
-									uv.y - (1.0 - dispFactor) * disp.r * dir.y);
-        vec4 _texture = texture2D(texture, distortedPosition);
-        vec4 _texture2 = texture2D(texture2, distortedPosition2);
-        vec4 finalTexture = mix(_texture, _texture2, dispFactor);
-        gl_FragColor = finalTexture;
+		vec2 d = vUv - mouse;
+		float ax = d.x * d.x / 0.04 + d.y * d.y / ratio / ratio / 0.04;
+		float dx = ax * ax / (2.0 * radius) - ax / 2.0;
+		float f = ax + step(ax, radius) * dx;
+		vec2 area = mouse + d * f / ax;
+        gl_FragColor = texture2D(texture, area);
     }`;
 
 var gl = null;
 var indiceCount = 0;
 var shaderProg = null;
+var texList = [
+	{ path: 'dmap.jpg', location: 'disp' },
+	{ path: 'intro_gruppo-cavour.jpg', location: 'texture' },
+	{ path: 'intro_gruppo.jpg', location: 'texture2' }];
 
 var compileShader = function (vert, frag) {
 	var vertexShader = gl.createShader(gl.VERTEX_SHADER);
@@ -81,6 +78,7 @@ var canvas = null;
 var InitDemo = function () {
 	console.log('This is working');
 	canvas = document.getElementById('game-surface');
+	handleTouch(canvas);
 	gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 	!gl && alert('Your browser does not support WebGL');
 	gl.clearColor(0, 0, 0, 0);
@@ -120,13 +118,13 @@ var InitDemo = function () {
 	let jobs = [];
 	gl.useProgram(shaderProg);
 	jobs.push(new Promise((resolve, reject) => {
-		loadTexture(0, 'dmap.jpg', 'disp', resolve, reject);
+		loadTexture(0, texList[0], resolve, reject);
 	}));
 	jobs.push(new Promise((resolve, reject) => {
-		loadTexture(1, 'intro_bar-cavour.jpg', 'texture', resolve, reject);
+		loadTexture(1, texList[1], resolve, reject);
 	}));
 	jobs.push(new Promise((resolve, reject) => {
-		loadTexture(2, 'intro_gruppo.jpg', 'texture2', resolve, reject);
+		loadTexture(2, texList[2], resolve, reject);
 	}));
 
 	Promise.all(jobs).then(() => {
@@ -134,7 +132,11 @@ var InitDemo = function () {
 	});
 };
 
-var loadTexture = function (id, path, location, resolve, reject) {
+var loadTexture = function (id, data, resolve, reject) {
+	if (!data) {
+		reject();
+		return;
+	}
 	var image = new Image();
 	image.addEventListener('load', function () {
 		var tex = gl.createTexture();
@@ -149,7 +151,7 @@ var loadTexture = function (id, path, location, resolve, reject) {
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 		}
-		var textureLoc = gl.getUniformLocation(shaderProg, location);
+		var textureLoc = gl.getUniformLocation(shaderProg, data.location);
 
 		// Main render loop
 		gl.uniform1i(textureLoc, id);
@@ -158,7 +160,7 @@ var loadTexture = function (id, path, location, resolve, reject) {
 	image.addEventListener('error', function () {
 		reject();
 	});
-	image.src = path;
+	image.src = data.path;
 };
 
 var timer = 0;
@@ -166,14 +168,6 @@ var param1 = 0;
 var param2 = 0.7;
 
 var updateAttribute = function (dt) {
-	param1 += dt;
-	if (param1 > 5) param1 = 0;
-
-	var loc1 = gl.getUniformLocation(shaderProg, 'dispFactor');
-	gl.uniform1f(loc1, param1 < 3 ? (param1 > 2 ? (param1 - 2) : 0) : 1);
-
-	var loc2 = gl.getUniformLocation(shaderProg, 'effectFactor');
-	gl.uniform1f(loc2, param2);
 };
 
 var draw = function (dt) {
@@ -183,6 +177,32 @@ var draw = function (dt) {
 	gl.drawElements(gl.TRIANGLES, indiceCount, gl.UNSIGNED_SHORT, 0);
 	window.requestAnimationFrame(draw);
 };
+
+var handleTouch = function (el) {
+	el.addEventListener("touchstart", handleStart, false);
+	el.addEventListener("touchend", handleEnd, false);
+	el.addEventListener("touchcancel", handleEnd, false);
+	el.addEventListener("touchmove", handleMove, false);
+	el.addEventListener("mousemove", handleMove, false);
+}
+
+var handleStart = function (evt) {
+	console.log('touchstart');
+}
+
+var handleMove = function (evt) {
+	console.log('touchmove');
+	var loc2 = gl.getUniformLocation(shaderProg, 'mouse');
+	gl.uniform2f(loc2, evt.x / canvas.width, evt.y / canvas.height);
+
+	var loc3 = gl.getUniformLocation(shaderProg, 'ratio');
+	var ratio = canvas.width / canvas.height;
+	gl.uniform1f(loc3, ratio);
+}
+
+var handleEnd = function (evt) {
+	console.log('touchend');
+}
 
 window.addEventListener('resize', () => {
 	gl.viewport(0, 0, window.innerWidth, window.innerHeight);
