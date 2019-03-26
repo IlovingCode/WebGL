@@ -1,11 +1,13 @@
 ////////////////////////////Pass your shader here////////////////////////////////////
 
 var vertexShaderText = `
+	precision mediump float;
     attribute vec2 a_position;
     attribute vec2 a_uv;
-    varying vec2 vUv;
+	varying vec2 vUv;
+
     void main() {
-        vUv = a_uv;
+		vUv = a_uv;
         gl_Position = vec4(a_position, 1.0, 1.0);
 	}`;
 
@@ -13,24 +15,26 @@ var fragmentShaderText = `
 	precision mediump float;
     varying vec2 vUv;
 	uniform sampler2D texture;
-	float radius = 1.0;
-	uniform float ratio;
-	uniform vec2 mouse;
+	uniform float time;
 
 	float rand(vec2 co){
 		return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 	}
 
-    void main() { 
-		vec2 d = vUv - mouse;
-		float ax = d.x * d.x / 0.04 + d.y * d.y / ratio / ratio / 0.04;
-		float dx = ax * ax / (2.0 * radius) - ax / 2.0;
-		float f = ax + step(ax, radius) * (dx + rand(vUv) * 0.02);
-		vec2 area = mouse + d * f / ax;
-        gl_FragColor = texture2D(texture, area);
+    void main() {
+		vec2 uv = vUv;
+		uv.x += (uv.x - 0.5) * time / pow(1.0 - uv.y, 2.0);
+		vec4 c= texture2D(texture, uv);
+		c *= step(0.0, uv.x) * step(uv.x, 1.0);
+        gl_FragColor = c;
     }`;
 
-	var updateAttribute = function (dt) {}
+var param = 0;
+var updateAttribute = function (dt) {
+	param += dt;
+	var loc1 = gl.getUniformLocation(shaderProg, 'time');
+	gl.uniform1f(loc1, param - Math.floor(param));
+}
 
 var texList = [
 	{ path: 'dmap.jpg', location: 'disp' },
@@ -171,7 +175,7 @@ var timer = 0;
 
 var draw = function (dt) {
 	!timer && (timer = dt);
-	updateAttribute && updateAttribute((dt - timer) / 1000);
+	updateAttribute((dt - timer) / 1000);
 	timer = dt;
 	gl.drawElements(gl.TRIANGLES, indiceCount, gl.UNSIGNED_SHORT, 0);
 	window.requestAnimationFrame(draw);
