@@ -29,7 +29,9 @@ var fragmentShaderText = `
         vec4 finalTexture = mix(_texture, _texture2, dispFactor);
         gl_FragColor = finalTexture;
     }`;
-
+    
+var param1 = 0;
+var param2 = 0.7;
 var updateAttribute = function (dt) {
     param1 += dt;
     if (param1 > 5) param1 = 0;
@@ -42,6 +44,6 @@ var updateAttribute = function (dt) {
 };
 
 var texList = [
-	{ path: 'dmap.jpg', location: 'disp' },
-	{ path: 'intro_bar-cavour.jpg', location: 'texture' },
-	{ path: 'intro_gruppo.jpg', location: 'texture2' }];
+    { path: 'dmap.jpg', location: 'disp' },
+    { path: 'intro_bar-cavour.jpg', location: 'texture' },
+    { path: 'intro_gruppo.jpg', location: 'texture2' }];

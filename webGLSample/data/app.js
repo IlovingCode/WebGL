@@ -1,4 +1,4 @@
-//import {vertexShaderText, fragmentShaderText} from './dmap.js';
+////////////////////////////Pass your shader here////////////////////////////////////
 
 var vertexShaderText = `
     attribute vec2 a_position;
@@ -13,25 +13,35 @@ var fragmentShaderText = `
 	precision mediump float;
     varying vec2 vUv;
 	uniform sampler2D texture;
-	float radius = 2.0;
+	float radius = 1.0;
 	uniform float ratio;
 	uniform vec2 mouse;
+
+	float rand(vec2 co){
+		return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+	}
+
     void main() { 
 		vec2 d = vUv - mouse;
 		float ax = d.x * d.x / 0.04 + d.y * d.y / ratio / ratio / 0.04;
 		float dx = ax * ax / (2.0 * radius) - ax / 2.0;
-		float f = ax + step(ax, radius) * dx;
+		float f = ax + step(ax, radius) * (dx + rand(vUv) * 0.02);
 		vec2 area = mouse + d * f / ax;
         gl_FragColor = texture2D(texture, area);
     }`;
 
+	var updateAttribute = function (dt) {}
+
+var texList = [
+	{ path: 'dmap.jpg', location: 'disp' },
+	{ path: 'intro_bar-cavour.jpg', location: 'texture2' },
+	{ path: 'intro_gruppo.jpg', location: 'texture' }];
+
+/////////////////////// app.js main code //////////////////////////////////////
+
 var gl = null;
 var indiceCount = 0;
 var shaderProg = null;
-var texList = [
-	{ path: 'dmap.jpg', location: 'disp' },
-	{ path: 'intro_gruppo-cavour.jpg', location: 'texture' },
-	{ path: 'intro_gruppo.jpg', location: 'texture2' }];
 
 var compileShader = function (vert, frag) {
 	var vertexShader = gl.createShader(gl.VERTEX_SHADER);
@@ -117,26 +127,20 @@ var InitDemo = function () {
 
 	let jobs = [];
 	gl.useProgram(shaderProg);
-	jobs.push(new Promise((resolve, reject) => {
-		loadTexture(0, texList[0], resolve, reject);
-	}));
-	jobs.push(new Promise((resolve, reject) => {
-		loadTexture(1, texList[1], resolve, reject);
-	}));
-	jobs.push(new Promise((resolve, reject) => {
-		loadTexture(2, texList[2], resolve, reject);
-	}));
 
-	Promise.all(jobs).then(() => {
-		draw(0);
-	});
+	if (texList) {
+		for (let i in texList)
+			jobs.push(new Promise((resolve, reject) => {
+				loadTexture(i, texList[i], resolve, reject);
+			}));
+
+		Promise.all(jobs).then(() => {
+			draw(0);
+		});
+	} else draw(0);
 };
 
 var loadTexture = function (id, data, resolve, reject) {
-	if (!data) {
-		reject();
-		return;
-	}
 	var image = new Image();
 	image.addEventListener('load', function () {
 		var tex = gl.createTexture();
@@ -164,15 +168,10 @@ var loadTexture = function (id, data, resolve, reject) {
 };
 
 var timer = 0;
-var param1 = 0;
-var param2 = 0.7;
-
-var updateAttribute = function (dt) {
-};
 
 var draw = function (dt) {
 	!timer && (timer = dt);
-	updateAttribute((dt - timer) / 1000);
+	updateAttribute && updateAttribute((dt - timer) / 1000);
 	timer = dt;
 	gl.drawElements(gl.TRIANGLES, indiceCount, gl.UNSIGNED_SHORT, 0);
 	window.requestAnimationFrame(draw);
