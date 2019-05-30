@@ -17,43 +17,53 @@ var fragmentShaderText = `
 	uniform sampler2D texture;
 	uniform sampler2D disp;
 	uniform float time;
-	uniform float ratio;
+	float radius = 1.0;
+	uniform vec2 resolution;
 	uniform vec2 mouse;
 
-	float PI = 3.141592;
-
-	float rand(vec2 co){
-		return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+	float intensity(sampler2D tex, vec2 uv){
+		vec4 c = texture2D(tex, uv);
+		return sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
 	}
 
+	vec3 sobel(sampler2D tex, vec2 uv){
+		float stepX = 1.0 / resolution.x;
+		float stepY = 1.0 / resolution.y;
+		// get samples around pixel
+		float tleft  = intensity(tex,uv + vec2(-stepX,stepY));
+		float left   = intensity(tex,uv + vec2(-stepX,0));
+		float bleft  = intensity(tex,uv + vec2(-stepX,-stepY));
+		float top    = intensity(tex,uv + vec2(0,stepY));
+		float bottom = intensity(tex,uv + vec2(0,-stepY));
+		float tright = intensity(tex,uv + vec2(stepX,stepY));
+		float right  = intensity(tex,uv + vec2(stepX,0));
+		float bright = intensity(tex,uv + vec2(stepX,-stepY));
+	 
+		float x = tleft + 0.1 * left + bleft - tright - 0.1 * right - bright;
+		float y = -tleft - 0.1 * top - tright + bleft + 0.1 * bottom + bright;
+		float color = sqrt(x * x + y * y);
+		return vec3(0,color,color);
+	}
+
+
     void main() {
+		float ratio = resolution.x / resolution.y;
 		vec2 uv = vUv; 
-		vec2 n = normalize(uv - mouse);
-		float length = length(uv - mouse);
-		float a = PI * time * 0.5;
-		vec2 n2 = vec2(0.0);
-		n2.x = n.x * cos(a) - n.y * sin(a);
-		n2.y = n.x * sin(a) + n.y * cos(a);
-		vec4 dmap = texture2D(disp, n2);
-		uv += n2 * time * time  + dmap.r * length * 0.1;
-		vec4 c= texture2D(texture, uv);
-		c *= step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
-		dmap *= step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
-		c = mix(dmap, c, 0.8);
+		vec2 d = vUv - mouse;
+		float ax = d.x * d.x / 0.04 + d.y * d.y / ratio / ratio / 0.04;
+		ax /= radius;
+		vec4 c = texture2D(texture, uv);
+		vec4 t = vec4(sobel(texture, uv), c.a);
+		c = step(ax, 1.0) * mix(t, c, ax) + step(1.0, ax) * c;
         gl_FragColor = c;
     }`;
 
-var param = 0;
-var updateAttribute = function (dt) {
-	param += dt * 0.5;
-	var loc1 = gl.getUniformLocation(shaderProg, 'time');
-	gl.uniform1f(loc1, param - Math.floor(param));
+var updateAttribute = function () {
 }
 
 var texList = [
 	{ path: 'dmap.jpg', location: 'disp' },
-	{ path: 'intro_bar-cavour.jpg', location: 'texture2' },
-	{ path: 'intro_gruppo.jpg', location: 'texture' }];
+	{ path: 'intro_bar-cavour.jpg', location: 'texture' }];
 
 /////////////////////// app.js main code //////////////////////////////////////
 
@@ -106,7 +116,6 @@ var canvas = null;
 var InitDemo = function () {
 	console.log('This is working');
 	canvas = document.getElementById('game-surface');
-	handleTouch(canvas);
 	gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 	!gl && alert('Your browser does not support WebGL');
 	gl.clearColor(0, 0, 0, 0);
@@ -145,6 +154,7 @@ var InitDemo = function () {
 
 	let jobs = [];
 	gl.useProgram(shaderProg);
+	handleTouch(canvas);
 
 	if (texList) {
 		for (let i in texList)
@@ -212,9 +222,8 @@ var handleMove = function (evt) {
 	var loc2 = gl.getUniformLocation(shaderProg, 'mouse');
 	gl.uniform2f(loc2, evt.x / canvas.width, evt.y / canvas.height);
 
-	var loc3 = gl.getUniformLocation(shaderProg, 'ratio');
-	var ratio = canvas.width / canvas.height;
-	gl.uniform1f(loc3, ratio);
+	var loc3 = gl.getUniformLocation(shaderProg, 'resolution');
+	gl.uniform2f(loc3, canvas.width, canvas.height);
 }
 
 var handleEnd = function (evt) {

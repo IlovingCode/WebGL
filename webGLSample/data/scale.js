@@ -15,7 +15,7 @@ var fragmentShaderText = `
 	uniform sampler2D texture;
 	uniform sampler2D disp;
 	uniform float time;
-	uniform float ratio;
+	uniform vec2 resolution;
 	uniform vec2 mouse;
 
 	float PI = 3.141592;
