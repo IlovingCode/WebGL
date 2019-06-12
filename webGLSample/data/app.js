@@ -17,53 +17,48 @@ var fragmentShaderText = `
 	uniform sampler2D texture;
 	uniform sampler2D disp;
 	uniform float time;
-	float radius = 1.0;
+	float radius = 0.5;
 	uniform vec2 resolution;
 	uniform vec2 mouse;
 
-	float intensity(sampler2D tex, vec2 uv){
-		vec4 c = texture2D(tex, uv);
-		return sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
-	}
-
-	vec3 sobel(sampler2D tex, vec2 uv){
-		float stepX = 1.0 / resolution.x;
-		float stepY = 1.0 / resolution.y;
-		// get samples around pixel
-		float tleft  = intensity(tex,uv + vec2(-stepX,stepY));
-		float left   = intensity(tex,uv + vec2(-stepX,0));
-		float bleft  = intensity(tex,uv + vec2(-stepX,-stepY));
-		float top    = intensity(tex,uv + vec2(0,stepY));
-		float bottom = intensity(tex,uv + vec2(0,-stepY));
-		float tright = intensity(tex,uv + vec2(stepX,stepY));
-		float right  = intensity(tex,uv + vec2(stepX,0));
-		float bright = intensity(tex,uv + vec2(stepX,-stepY));
-	 
-		float x = tleft + 0.1 * left + bleft - tright - 0.1 * right - bright;
-		float y = -tleft - 0.1 * top - tright + bleft + 0.1 * bottom + bright;
-		float color = sqrt(x * x + y * y);
-		return vec3(0,color,color);
-	}
-
+	float s = 0.392156;
+	vec3 c1 = vec3(1.0, s, 1.0);
+	vec3 c2 = vec3(s, 1.0, 1.0);
+	vec3 c3 = vec3(1.0, 1.0, s);
+	vec3 c4 = vec3(s, s, 1.0);
+	vec3 c5 = vec3(1.0, s, s);
+	vec3 c6 = vec3(s, 1.0, s);
 
     void main() {
-		float ratio = resolution.x / resolution.y;
-		vec2 uv = vUv; 
+		float ratio = resolution.x / resolution.y; 
 		vec2 d = vUv - mouse;
 		float ax = d.x * d.x / 0.04 + d.y * d.y / ratio / ratio / 0.04;
 		ax /= radius;
-		vec4 c = texture2D(texture, uv);
-		vec4 t = vec4(sobel(texture, uv), c.a);
-		c = step(ax, 1.0) * mix(t, c, ax) + step(1.0, ax) * c;
+		float a = atan(d.x * ratio, d.y) / 3.14159265359 + 1.0;
+		a *= floor(time);
+		a = floor(a);
+		vec4 c = vec4(0.0, 0.0, 0.0, 1.0);
+		vec3 t = //vec3(a, a, a)
+				+step(a, 1.0) * c1 
+				+step(1.01, a) * step(a, 3.0) * c2
+				+step(3.01, a) * step(a, 5.0) * c3
+				+step(5.01, a) * step(a, 7.0) * c4
+				+step(7.01, a) * step(a, 9.0) * c5
+				+step(9.01, a) * c6
+				;
+		t *= step(1.0, ax) * 2.0 + 1.0;
+		c = step(ax, 1.1) * vec4(t, c.a) + step(1.1, ax) * c;
         gl_FragColor = c;
     }`;
 
-var updateAttribute = function () {
+var param = 0;
+var updateAttribute = function (dt) {
+	param += dt * 3;
+	var loc1 = gl.getUniformLocation(shaderProg, 'time');
+	gl.uniform1f(loc1, Math.abs(param % 14 - 7));
 }
 
-var texList = [
-	{ path: 'dmap.jpg', location: 'disp' },
-	{ path: 'intro_bar-cavour.jpg', location: 'texture' }];
+var texList = [];
 
 /////////////////////// app.js main code //////////////////////////////////////
 
