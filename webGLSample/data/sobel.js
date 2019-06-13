@@ -1,4 +1,5 @@
-var vertexShaderText = `
+sobel = {
+	vertexShaderText: `
 	precision mediump float;
     attribute vec2 a_position;
     attribute vec2 a_uv;
@@ -7,9 +8,9 @@ var vertexShaderText = `
     void main() {
 		vUv = a_uv;
         gl_Position = vec4(a_position, 1.0, 1.0);
-	}`;
+	}`,
 
-var fragmentShaderText = `
+	fragmentShaderText: `
 	precision mediump float;
     varying vec2 vUv;
 	uniform sampler2D texture;
@@ -40,7 +41,7 @@ var fragmentShaderText = `
 		float x = tleft + 0.1 * left + bleft - tright - 0.1 * right - bright;
 		float y = -tleft - 0.1 * top - tright + bleft + 0.1 * bottom + bright;
 		float color = sqrt(x * x + y * y);
-		return vec3(color,color,color) * time;
+		return vec3(0,color,color);
 	}
 
 
@@ -54,11 +55,9 @@ var fragmentShaderText = `
 		vec4 t = vec4(sobel(texture, uv), c.a);
 		c = step(ax, 1.0) * mix(t, c, ax) + step(1.0, ax) * c;
         gl_FragColor = c;
-    }`;
+    }`,
 
-var updateAttribute = function () {
+	texList: [
+		{ path: 'dmap.jpg', location: 'disp' },
+		{ path: 'intro_bar-cavour.jpg', location: 'texture' }],
 }
-
-var texList = [
-	{ path: 'dmap.jpg', location: 'disp' },
-	{ path: 'intro_gruppo.jpg', location: 'texture' }];

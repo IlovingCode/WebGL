@@ -1,4 +1,6 @@
-var vertexShaderText = `
+scale = {
+
+	vertexShaderText: `
 	precision mediump float;
     attribute vec2 a_position;
     attribute vec2 a_uv;
@@ -7,9 +9,9 @@ var vertexShaderText = `
     void main() {
 		vUv = a_uv;
         gl_Position = vec4(a_position, 1.0, 1.0);
-	}`;
+	}`,
 
-var fragmentShaderText = `
+	fragmentShaderText: `
 	precision mediump float;
     varying vec2 vUv;
 	uniform sampler2D texture;
@@ -39,16 +41,18 @@ var fragmentShaderText = `
 		dmap *= step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
 		c = mix(dmap, c, 0.8);
         gl_FragColor = c;
-    }`;
+    }`,
 
-var param = 0;
-var updateAttribute = function (dt) {
-	param += dt * 0.5;
-	var loc1 = gl.getUniformLocation(shaderProg, 'time');
-	gl.uniform1f(loc1, param - Math.floor(param));
+
+	updateAttribute: function (dt) {
+		param += dt * 0.5;
+		var loc1 = gl.getUniformLocation(shaderProg, 'time');
+		gl.uniform1f(loc1, param - Math.floor(param));
+	},
+
+	texList: [
+		{ path: 'dmap.jpg', location: 'disp' },
+		{ path: 'intro_bar-cavour.jpg', location: 'texture2' },
+		{ path: 'intro_gruppo.jpg', location: 'texture' }],
 }
-
-var texList = [
-	{ path: 'dmap.jpg', location: 'disp' },
-	{ path: 'intro_bar-cavour.jpg', location: 'texture2' },
-	{ path: 'intro_gruppo.jpg', location: 'texture' }];
+var param = 0;

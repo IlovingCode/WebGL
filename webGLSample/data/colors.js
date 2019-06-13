@@ -1,4 +1,5 @@
-var vertexShaderText = `
+colors = {
+	vertexShaderText: `
 	precision mediump float;
     attribute vec2 a_position;
     attribute vec2 a_uv;
@@ -7,9 +8,9 @@ var vertexShaderText = `
     void main() {
 		vUv = a_uv;
         gl_Position = vec4(a_position, 1.0, 1.0);
-	}`;
+	}`,
 
-var fragmentShaderText = `
+	fragmentShaderText: `
 	precision mediump float;
     varying vec2 vUv;
 	uniform sampler2D texture;
@@ -47,13 +48,15 @@ var fragmentShaderText = `
 		t *= step(1.0, ax) * 2.0 + 1.0;
 		c = step(ax, 1.1) * vec4(t, c.a) + step(1.1, ax) * c;
         gl_FragColor = c;
-    }`;
+    }`,
 
-var param = 0;
-var updateAttribute = function (dt) {
-	param += dt * 3;
-	var loc1 = gl.getUniformLocation(shaderProg, 'time');
-	gl.uniform1f(loc1, Math.abs(param % 14 - 7));
+	updateAttribute: function (dt) {
+		param += dt * 3;
+		var loc1 = gl.getUniformLocation(shaderProg, 'time');
+		gl.uniform1f(loc1, Math.abs(param % 14 - 7));
+	},
+
+	texList: [],
 }
 
-var texList = [];
+var param = 0;

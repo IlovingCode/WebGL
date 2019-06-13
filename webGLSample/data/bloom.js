@@ -1,4 +1,5 @@
-var vertexShaderText = `
+bloom = {
+	vertexShaderText: `
 	precision mediump float;
     attribute vec2 a_position;
     attribute vec2 a_uv;
@@ -7,9 +8,9 @@ var vertexShaderText = `
     void main() {
 		vUv = a_uv;
         gl_Position = vec4(a_position, 1.0, 1.0);
-	}`;
+	}`,
 
-var fragmentShaderText = `
+	fragmentShaderText: `
 	precision mediump float;
     varying vec2 vUv;
 	uniform sampler2D texture;
@@ -52,11 +53,9 @@ var fragmentShaderText = `
 		vec4 b = blur(texture, uv);
 		c = step(ax, 1.0) * mix(b + c, c, ax) + step(1.0, ax) * c;
         gl_FragColor = c;
-    }`;
+    }`,
 
-var updateAttribute = function () {
+	texList: [
+		{ path: 'dmap.jpg', location: 'disp' },
+		{ path: 'intro_bar-cavour.jpg', location: 'texture' }],
 }
-
-var texList = [
-	{ path: 'dmap.jpg', location: 'disp' },
-	{ path: 'intro_bar-cavour.jpg', location: 'texture' }];
