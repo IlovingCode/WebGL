@@ -16,7 +16,7 @@ colors = {
 	uniform sampler2D texture;
 	uniform sampler2D disp;
 	uniform float time;
-	float radius = 0.5;
+	float radius = 0.04;
 	uniform vec2 resolution;
 	uniform vec2 mouse;
 
@@ -36,7 +36,7 @@ colors = {
 		float ratio = resolution.x / resolution.y; 
 		vec2 d = vUv - mouse;
 		float l = length(d) * 3.0;
-		float ax = d.x * d.x / 0.04 + d.y * d.y / ratio / ratio / 0.04;
+		float ax = d.x * d.x + d.y * d.y / (ratio / ratio);
 		ax /= radius;
 		float a = 1.0 + atan(d.x * ratio, d.y) * 0.318309886; // 1/Pi
 		a *= time * 0.5;

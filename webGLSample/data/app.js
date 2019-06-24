@@ -99,6 +99,7 @@ var InitDemo = function () {
 		}));
 
 	Promise.all(jobs).then(() => {
+		handleMove({ x: canvas.width / 2, y: canvas.height / 2 });
 		draw(0);
 	});
 };

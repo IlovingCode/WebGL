@@ -16,7 +16,7 @@ bloom = {
 	uniform sampler2D texture;
 	uniform sampler2D disp;
 	uniform float time;
-	float radius = 1.0;
+	float radius = 0.04;
 	uniform vec2 resolution;
 	uniform vec2 mouse;
 
@@ -47,7 +47,7 @@ bloom = {
 		float ratio = resolution.x / resolution.y;
 		vec2 uv = vUv; 
 		vec2 d = vUv - mouse;
-		float ax = d.x * d.x / 0.04 + d.y * d.y / ratio / ratio / 0.04;
+		float ax = d.x * d.x + d.y * d.y / (ratio * ratio);
 		ax /= radius;
 		vec4 c = texture2D(texture, uv);
 		vec4 b = blur(texture, uv);
