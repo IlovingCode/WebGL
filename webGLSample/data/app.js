@@ -1,5 +1,5 @@
 ////////////////////////////Pass your shader here////////////////////////////////////
-var config = thanos;
+var config = outline;
 
 /////////////////////// app.js main code //////////////////////////////////////
 
@@ -116,8 +116,10 @@ var loadTexture = function (id, data, resolve, reject) {
 		} else {
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+			let filter = config.filter || 'LINEAR';
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl[filter]);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl[filter]);
 		}
 		var textureLoc = gl.getUniformLocation(shaderProg, data.location);
 
