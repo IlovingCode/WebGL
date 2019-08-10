@@ -55,7 +55,6 @@ outline = {
 	}`,
 
 	updateAttribute: function (dt) {
-		let t = param;
 		param += dt * 0.7;
 		var loc1 = gl.getUniformLocation(shaderProg, 'time');
 		if (param > 1) param = -param;
