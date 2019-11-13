@@ -14,3 +14,6 @@ app.use(function(req, res, next) {
 
 const port = 8080
 app.listen(port, '0.0.0.0', () => console.log(`app listening on port ${port}`))
+
+var {exec} = require('child_process');
+exec('start chrome http://localhost:8080');
